@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "init-db": "node database/init.js"
+    "init-db": "node database/init.js",
+    "seed-dev": "node database/dev/seed.js"
   },
   "dependencies": {
     "express": "^5.2.1",

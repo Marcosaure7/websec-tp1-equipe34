@@ -22,15 +22,21 @@ cp .env.example .env
 npm run init-db
 ```
 
-4. Lancer l'application :
+4. (Développement uniquement) Insérer les données de test :
+
+```bash
+npm run seed-dev
+```
+
+5. Lancer l'application :
 
 ```bash
 npm start
 ```
 
-5. Accéder à l'application : http://localhost:3000
+6. Accéder à l'application : http://localhost:3000
 
-## Comptes de test
+## Comptes de test (après `npm run seed-dev`)
 
 | Email                     | Mot de passe | Rôle  |
 | ------------------------- | ------------ | ----- |
