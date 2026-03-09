@@ -16,10 +16,10 @@ router.get('/login', (req, res) => {
 router.post('/login', (req, res) => {
   const { email, password } = req.body;
 
-  const query = `SELECT * FROM users WHERE email = '${email}' AND password = '${password}'`;
-
   try {
-    const user = db.prepare(query).get();
+    const user = db
+      .prepare('SELECT * FROM users WHERE email = ? AND password = ?')
+      .get(email, password);
 
     if (user) {
       if (user.active === 0) {
@@ -39,8 +39,8 @@ router.post('/login', (req, res) => {
       res.redirect('/account/dashboard');
     } else {
       const emailCheck = db
-        .prepare(`SELECT * FROM users WHERE email = '${email}'`)
-        .get();
+        .prepare('SELECT * FROM users WHERE email = ?')
+        .get(email);
       if (emailCheck) {
         req.session.error = 'Mot de passe incorrect';
       } else {
