@@ -1,7 +1,11 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const Database = require('better-sqlite3');
 const path = require('path');
+
+// Durée de validité du token de réinitialisation (en heures)
+const RESET_TOKEN_EXPIRATION_HOURS = 1;
 
 const db = new Database(
   path.join(__dirname, '..', 'database', 'caissepassecure.db'),
@@ -109,7 +113,7 @@ router.post('/forgot-password', (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
 
   if (user) {
-    const token = Date.now().toString();
+    const token = crypto.randomBytes(32).toString('hex');
 
     db.prepare(
       'INSERT INTO password_resets (user_id, token) VALUES (?, ?)',
@@ -143,8 +147,11 @@ router.post('/reset-password', (req, res) => {
   }
 
   const reset = db
-    .prepare('SELECT * FROM password_resets WHERE token = ?')
-    .get(token);
+    .prepare(
+      `SELECT * FROM password_resets 
+       WHERE token = ? AND datetime(created_at) > datetime('now', ?)`,
+    )
+    .get(token, `-${RESET_TOKEN_EXPIRATION_HOURS} hours`);
 
   if (reset) {
     db.prepare('UPDATE users SET password = ? WHERE id = ?').run(
