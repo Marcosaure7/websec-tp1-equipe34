@@ -55,20 +55,30 @@ router.get('/profile', isAuthenticated, (req, res) => {
     });
 });
 
+function sanitizeForXSS(str) {
+    if (typeof str !== 'string') return str;
+    return str.replace(/[<>]/g, '');
+}
+
 // Modification du profil
 router.post('/profile', isAuthenticated, (req, res) => {
     const { id, name, email, bio, avatar_url } = req.body;
 
+    const sanitizedName = sanitizeForXSS(name);
+    const sanitizedEmail = sanitizeForXSS(email);
+    const sanitizedBio = sanitizeForXSS(bio);
+    const sanitizedAvatarUrl = sanitizeForXSS(avatar_url || '');
+
     try {
         db.prepare(
             'UPDATE users SET name = ?, email = ?, bio = ?, avatar_url = ? WHERE id = ?',
-        ).run(name, email, bio, avatar_url, id);
+        ).run(sanitizedName, sanitizedEmail, sanitizedBio, sanitizedAvatarUrl, id);
 
         // Mettre à jour la session si c'est le propre profil
         if (parseInt(id) === req.session.user.id) {
-            req.session.user.name = name;
-            req.session.user.email = email;
-            req.session.user.avatar_url = avatar_url;
+            req.session.user.name = sanitizedName;
+            req.session.user.email = sanitizedEmail;
+            req.session.user.avatar_url = sanitizedAvatarUrl;
         }
 
         req.session.success = 'Profil mis à jour avec succès';
