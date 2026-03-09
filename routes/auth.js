@@ -42,14 +42,7 @@ router.post('/login', (req, res) => {
       req.session.success = `Bienvenue, ${user.name} !`;
       res.redirect('/account/dashboard');
     } else {
-      const emailCheck = db
-        .prepare('SELECT * FROM users WHERE email = ?')
-        .get(email);
-      if (emailCheck) {
-        req.session.error = 'Mot de passe incorrect';
-      } else {
-        req.session.error = 'Aucun compte associé à cet email';
-      }
+      req.session.error = 'Email ou mot de passe incorrect';
       res.redirect('/auth/login');
     }
   } catch (err) {
