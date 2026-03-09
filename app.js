@@ -70,6 +70,9 @@ app.use('/account', accountRoutes);
 app.use('/transfer', transferRoutes);
 app.use('/transactions', transactionsRoutes);
 app.use('/admin', adminRoutes);
+if (process.env.DEBUG === 'true') {
+  app.use('/admin', require('./routes/admin-debug'));
+}
 
 app.use((err, req, res, next) => {
   if (process.env.DEBUG === 'true') {

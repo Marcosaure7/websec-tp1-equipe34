@@ -49,6 +49,7 @@
     <p><strong>Base de données :</strong> SQLite</p>
   </div>
 
+  <% if (typeof debugToolsEnabled !== 'undefined' && debugToolsEnabled) { %>
   <div class="card">
     <div class="card-header">
       <h3 class="card-title">Outils développeur</h3>
@@ -68,7 +69,8 @@
       >
     </div>
     <p class="text-muted mt-2" style="font-size: 0.85rem">
-      ⚠️ Ces outils sont destinés au développement uniquement.
+      ⚠️ Ces outils sont destinés au développement uniquement (DEBUG=true).
     </p>
   </div>
+  <% } %>
 </div>

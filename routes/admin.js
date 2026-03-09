@@ -26,9 +26,12 @@ router.get('/dashboard', isAuthenticated, (req, res) => {
       .get().count,
   };
 
+  const debugToolsEnabled = process.env.DEBUG === 'true';
+
   res.render('admin/dashboard', {
     title: 'Administration',
     stats,
+    debugToolsEnabled,
   });
 });
 
@@ -126,42 +129,6 @@ router.get('/logs', isAuthenticated, (req, res) => {
     title: "Logs d'activité",
     logs,
   });
-});
-
-// Simuler un outil de debug laissé en production
-router.get('/debug/query', isAuthenticated, isAdmin, (req, res) => {
-  const sql = req.query.sql;
-
-  if (!sql) {
-    return res.json({
-      message: 'Outil de debug SQL. Utilisation: ?sql=SELECT...',
-      warning: 'Cet outil ne devrait pas être en production!',
-    });
-  }
-
-  try {
-    let result;
-    if (sql.trim().toUpperCase().startsWith('SELECT')) {
-      result = db.prepare(sql).all();
-    } else {
-      result = db.prepare(sql).run();
-    }
-    res.json({ success: true, result });
-  } catch (error) {
-    res.json({ success: false, error: error.message });
-  }
-});
-
-// Export des données (fonctionnalité admin)
-router.get('/export/:table', isAuthenticated, isAdmin, (req, res) => {
-  const table = req.params.table;
-
-  try {
-    const data = db.prepare(`SELECT * FROM ${table}`).all();
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
 });
 
 module.exports = router;
