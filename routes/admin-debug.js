@@ -42,7 +42,8 @@ router.get('/export/:table', isAuthenticated, isAdmin, (req, res) => {
     const data = db.prepare(`SELECT * FROM ${table}`).all();
     res.json(data);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Export error:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
