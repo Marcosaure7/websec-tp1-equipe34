@@ -11,6 +11,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 const Database = require('better-sqlite3');
+const bcrypt = require('bcrypt');
 const path = require('path');
 
 const db = new Database(path.join(__dirname, '..', 'caissepassecure.db'));
@@ -62,7 +63,10 @@ const insertUser = db.prepare(`
 `);
 
 for (const user of users) {
-  insertUser.run(user);
+  insertUser.run({
+    ...user,
+    password: bcrypt.hashSync(user.password, 10),
+  });
 }
 
 const transactions = [

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 const Database = require('better-sqlite3');
 const path = require('path');
 
@@ -17,15 +18,13 @@ router.get('/login', (req, res) => {
 });
 
 // Traitement de la connexion
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = db
-      .prepare('SELECT * FROM users WHERE email = ? AND password = ?')
-      .get(email, password);
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email);
 
-    if (user) {
+    if (user && (await bcrypt.compare(password, user.password))) {
       if (user.active === 0) {
         req.session.error = 'Ce compte a été désactivé';
         return res.redirect('/auth/login');
@@ -61,7 +60,7 @@ router.get('/register', (req, res) => {
 });
 
 // Traitement de l'inscription
-router.post('/register', (req, res) => {
+router.post('/register', async (req, res) => {
   const { name, email, password, password_confirm } = req.body;
 
   if (password !== password_confirm) {
@@ -79,11 +78,10 @@ router.post('/register', (req, res) => {
       return res.redirect('/auth/register');
     }
 
-    const result = db
-      .prepare(
-        'INSERT INTO users (name, email, password, balance) VALUES (?, ?, ?, ?)',
-      )
-      .run(name, email, password, 100.0);
+    const hashedPassword = await bcrypt.hash(password, 10);
+    db.prepare(
+      'INSERT INTO users (name, email, password, balance) VALUES (?, ?, ?, ?)',
+    ).run(name, email, hashedPassword, 100.0);
 
     req.session.success =
       'Compte créé avec succès ! Vous pouvez maintenant vous connecter.';
@@ -131,7 +129,7 @@ router.get('/reset-password', (req, res) => {
 });
 
 // Traitement réinitialisation
-router.post('/reset-password', (req, res) => {
+router.post('/reset-password', async (req, res) => {
   const { token, password, password_confirm } = req.body;
 
   if (password !== password_confirm) {
@@ -147,8 +145,9 @@ router.post('/reset-password', (req, res) => {
     .get(token, `-${RESET_TOKEN_EXPIRATION_HOURS} hours`);
 
   if (reset) {
+    const hashedPassword = await bcrypt.hash(password, 10);
     db.prepare('UPDATE users SET password = ? WHERE id = ?').run(
-      password,
+      hashedPassword,
       reset.user_id,
     );
     db.prepare('DELETE FROM password_resets WHERE id = ?').run(reset.id);
