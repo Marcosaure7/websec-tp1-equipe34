@@ -9,8 +9,21 @@ const accountRoutes = require('./routes/account');
 const transferRoutes = require('./routes/transfer');
 const transactionsRoutes = require('./routes/transactions');
 const adminRoutes = require('./routes/admin');
+const {
+  attachCsrfToLocals,
+  verifyPostCsrf,
+} = require('./middleware/csrf');
 
 const app = express();
+const isProd = process.env.NODE_ENV === 'production';
+
+if (isProd && !process.env.SESSION_SECRET) {
+  console.error('SESSION_SECRET est obligatoire en production.');
+  process.exit(1);
+}
+
+const sessionSecret =
+  process.env.SESSION_SECRET || 'dev-only-never-use-in-production';
 
 // Configuration EJS
 app.set('view engine', 'ejs');
@@ -43,12 +56,20 @@ app.use(express.json());
 
 app.use(
   session({
-    secret: process.env.SESSION_SECRET,
+    secret: sessionSecret,
     resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false },
+    saveUninitialized: false,
+    name: 'sid',
+    cookie: {
+      secure: isProd,
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000,
+    },
   }),
 );
+
+app.use(attachCsrfToLocals);
 
 // Variables globales pour les vues
 app.use((req, res, next) => {
@@ -59,6 +80,8 @@ app.use((req, res, next) => {
   delete req.session.error;
   next();
 });
+
+app.use(verifyPostCsrf);
 
 // Routes
 app.get('/', (req, res) => {
@@ -73,15 +96,9 @@ app.use('/admin', adminRoutes);
 
 app.use((err, req, res, next) => {
   if (process.env.DEBUG === 'true') {
-    res.status(500).send(`
-      <h1>Erreur serveur</h1>
-      <pre>${err.stack}</pre>
-      <p>Query: ${JSON.stringify(req.query)}</p>
-      <p>Body: ${JSON.stringify(req.body)}</p>
-    `);
-  } else {
-    res.status(500).render('error', { message: 'Une erreur est survenue' });
+    console.error('[DEBUG]', err.stack || err.message);
   }
+  res.status(500).render('error', { message: 'Une erreur est survenue' });
 });
 
 const PORT = process.env.PORT || 3000;

@@ -718,3 +718,22 @@ a:hover {
 .nav-user-avatar:hover {
   opacity: 0.8;
 }
+
+.nav-link-form {
+  display: inline;
+  margin: 0;
+}
+
+.nav-link-button {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+}
+
+.nav-link-button:hover {
+  text-decoration: underline;
+}

@@ -1,7 +1,9 @@
 const Database = require('better-sqlite3');
 const path = require('path');
+const bcrypt = require('bcryptjs');
 
 const db = new Database(path.join(__dirname, 'caissepassecure.db'));
+const BCRYPT_ROUNDS = 12;
 
 // Suppression des tables existantes
 db.exec(`
@@ -68,7 +70,7 @@ const users = [
   {
     name: 'Bob Martin',
     email: 'bob@test.com',
-    password: 'bob123',
+    password: 'bob12345',
     bio: 'Entrepreneur passionné',
     balance: 850.0,
     role: 'user',
@@ -97,7 +99,10 @@ const insertUser = db.prepare(`
 `);
 
 for (const user of users) {
-  insertUser.run(user);
+  insertUser.run({
+    ...user,
+    password: bcrypt.hashSync(user.password, BCRYPT_ROUNDS),
+  });
 }
 
 // Transactions initiales

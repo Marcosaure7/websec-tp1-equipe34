@@ -41,12 +41,12 @@
                 <td><%= formatDate(t.created_at) %></td>
                 <td>
                   <% if (t.from_user_id === account.id) { %>
-                    Envoyé à <%- t.receiver_name %>
+                    Envoyé à <%= t.receiver_name %>
                   <% } else { %>
-                    Reçu de <%- t.sender_name || 'Système' %>
+                    Reçu de <%= t.sender_name || 'Système' %>
                   <% } %>
                   <% if (t.description) { %>
-                    <br><small class="text-muted"><%- t.description %></small>
+                    <br><small class="text-muted"><%= t.description %></small>
                   <% } %>
                 </td>
                 <td class="<%= t.from_user_id === account.id ? 'amount-negative' : 'amount-positive' %>">

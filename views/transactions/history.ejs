@@ -24,19 +24,19 @@
               <td><%= formatDate(t.created_at) %></td>
               <td>
                 <% if (t.sender_name) { %>
-                  <%- t.sender_name %>
-                  <% if (t.from_user_id === currentUserId) { %><small>(vous)</small><% } %>
+                  <%= t.sender_name %>
+                  <% if (t.from_user_id === sessionUserId) { %><small>(vous)</small><% } %>
                 <% } else { %>
                   <em>Système</em>
                 <% } %>
               </td>
               <td>
-                <%- t.receiver_name %>
-                <% if (t.to_user_id === currentUserId) { %><small>(vous)</small><% } %>
+                <%= t.receiver_name %>
+                <% if (t.to_user_id === sessionUserId) { %><small>(vous)</small><% } %>
               </td>
-              <td><%- t.description || '-' %></td>
-              <td class="text-right <%= t.from_user_id === currentUserId ? 'amount-negative' : 'amount-positive' %>">
-                <%= t.from_user_id === currentUserId ? '-' : '+' %><%= formatMoney(t.amount) %>
+              <td><%= t.description || '-' %></td>
+              <td class="text-right <%= t.from_user_id === historyUserId ? 'amount-negative' : 'amount-positive' %>">
+                <%= t.from_user_id === historyUserId ? '-' : '+' %><%= formatMoney(t.amount) %>
               </td>
             </tr>
           <% }); %>

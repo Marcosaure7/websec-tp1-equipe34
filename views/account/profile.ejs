@@ -7,7 +7,7 @@
     </div>
     
     <form action="/account/profile" method="POST">
-      <input type="hidden" name="id" value="<%= account.id %>">
+      <%- include('../partials/csrf') %>
       
       <div class="form-group">
         <label for="name" class="form-label">Nom complet</label>
@@ -45,6 +45,7 @@
     </div>
     
     <form action="/account/profile/avatar" method="POST">
+      <%- include('../partials/csrf') %>
       <div class="form-group">
         <label for="avatar_url" class="form-label">URL de l'image</label>
         <input type="url" id="avatar_url" name="avatar_url" class="form-input" placeholder="https://exemple.com/photo.jpg">
@@ -65,7 +66,7 @@
     
     <% if (account.bio) { %>
       <p class="mt-2"><strong>Bio :</strong></p>
-      <p><%- account.bio %></p>
+      <p><%= account.bio %></p>
     <% } %>
   </div>
 </div>

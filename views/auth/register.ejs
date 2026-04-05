@@ -3,6 +3,7 @@
     <h1>Créer un compte</h1>
 
     <form action="/auth/register" method="POST" id="register-form">
+      <%- include('../partials/csrf') %>
       <div class="form-group">
         <label for="name" class="form-label">Nom complet</label>
         <input type="text" id="name" name="name" class="form-input" required />
@@ -28,7 +29,7 @@
           class="form-input"
           required
         />
-        <p class="form-hint">Minimum 4 caractères</p>
+        <p class="form-hint">Minimum 8 caractères</p>
       </div>
 
       <div class="form-group">

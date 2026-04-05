@@ -36,9 +36,9 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
 
-      if (password.length < 4) {
+      if (password.length < 8) {
         e.preventDefault();
-        alert('Le mot de passe doit contenir au moins 4 caractères');
+        alert('Le mot de passe doit contenir au moins 8 caractères');
         return;
       }
     });

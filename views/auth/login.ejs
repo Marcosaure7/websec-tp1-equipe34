@@ -3,6 +3,7 @@
     <h1>Connexion</h1>
 
     <form action="/auth/login" method="POST">
+      <%- include('../partials/csrf') %>
       <div class="form-group">
         <label for="email" class="form-label">Adresse email</label>
         <input

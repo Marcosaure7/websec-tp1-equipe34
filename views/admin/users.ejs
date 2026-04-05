@@ -12,7 +12,7 @@
   </div>
   
   <% if (typeof searchQuery !== 'undefined' && searchQuery) { %>
-    <p class="mb-2">Résultats pour : <strong><%- searchQuery %></strong></p>
+    <p class="mb-2">Résultats pour : <strong><%= searchQuery %></strong></p>
   <% } %>
   
   <div class="table-container">
@@ -32,7 +32,7 @@
         <% users.forEach(function(u) { %>
           <tr>
             <td><%= u.id %></td>
-            <td><%- u.name %></td>
+            <td><%= u.name %></td>
             <td><%= u.email %></td>
             <td><%= formatMoney(u.balance) %></td>
             <td><span class="badge badge-<%= u.role %>"><%= u.role %></span></td>
@@ -44,10 +44,11 @@
             <td>
               <div class="actions">
                 <button type="button" class="btn btn-outline btn-sm" 
-                        onclick="openEditModal(<%= u.id %>, '<%= u.name %>', '<%= u.email %>', <%= u.balance %>, '<%= u.role %>', <%= u.active %>)">
+                        onclick='openEditModal(<%= u.id %>, <%- JSON.stringify(u.name) %>, <%- JSON.stringify(u.email) %>, <%= u.balance %>, <%- JSON.stringify(u.role) %>, <%= u.active %>)'>
                   Modifier
                 </button>
                 <form action="/admin/users/<%= u.id %>/delete" method="POST" style="display: inline;">
+                  <%- include('../partials/csrf') %>
                   <button type="submit" class="btn btn-danger btn-sm btn-delete">Supprimer</button>
                 </form>
               </div>
@@ -65,6 +66,7 @@
     <h2>Modifier l'utilisateur</h2>
     
     <form id="edit-form" method="POST">
+      <%- include('../partials/csrf') %>
       <div class="form-group">
         <label for="edit-name" class="form-label">Nom</label>
         <input type="text" id="edit-name" name="name" class="form-input" required>

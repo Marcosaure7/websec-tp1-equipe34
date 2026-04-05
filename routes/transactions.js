@@ -10,7 +10,19 @@ const db = new Database(
 
 // Historique des transactions
 router.get('/history', isAuthenticated, (req, res) => {
-  const userId = req.query.user_id || req.session.user.id;
+  let userId = req.session.user.id;
+
+  if (req.query.user_id != null && String(req.query.user_id) !== '') {
+    if (req.session.user.role !== 'admin') {
+      req.session.error = 'Accès refusé';
+      return res.redirect('/transactions/history');
+    }
+    const parsed = parseInt(req.query.user_id, 10);
+    if (Number.isNaN(parsed)) {
+      return res.redirect('/transactions/history');
+    }
+    userId = parsed;
+  }
 
   const transactions = db
     .prepare(
@@ -32,7 +44,8 @@ router.get('/history', isAuthenticated, (req, res) => {
   res.render('transactions/history', {
     title: 'Historique des transactions',
     transactions,
-    currentUserId: parseInt(userId),
+    historyUserId: userId,
+    sessionUserId: req.session.user.id,
   });
 });
 
@@ -44,6 +57,10 @@ router.get('/search', isAuthenticated, (req, res) => {
     searchQuery: '',
   });
 });
+
+function escapeLike(str) {
+  return String(str).replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
 
 // Traitement de la recherche
 router.post('/search', isAuthenticated, (req, res) => {
@@ -59,25 +76,30 @@ router.post('/search', isAuthenticated, (req, res) => {
     FROM transactions t
     LEFT JOIN users sender ON t.from_user_id = sender.id
     JOIN users receiver ON t.to_user_id = receiver.id
-    WHERE (t.from_user_id = ${userId} OR t.to_user_id = ${userId})
+    WHERE (t.from_user_id = ? OR t.to_user_id = ?)
   `;
+  const params = [userId, userId];
 
-  if (query) {
-    sql += ` AND (t.description LIKE '%${query}%' OR sender.name LIKE '%${query}%' OR receiver.name LIKE '%${query}%')`;
+  if (query && String(query).trim()) {
+    const pattern = `%${escapeLike(String(query).trim())}%`;
+    sql += ` AND (t.description LIKE ? ESCAPE '\\' OR sender.name LIKE ? ESCAPE '\\' OR receiver.name LIKE ? ESCAPE '\\')`;
+    params.push(pattern, pattern, pattern);
   }
 
-  if (date_from) {
-    sql += ` AND t.created_at >= '${date_from}'`;
+  if (date_from && String(date_from).trim()) {
+    sql += ' AND date(t.created_at) >= date(?)';
+    params.push(String(date_from).trim());
   }
 
-  if (date_to) {
-    sql += ` AND t.created_at <= '${date_to}'`;
+  if (date_to && String(date_to).trim()) {
+    sql += ' AND date(t.created_at) <= date(?)';
+    params.push(String(date_to).trim());
   }
 
   sql += ' ORDER BY t.created_at DESC';
 
   try {
-    const transactions = db.prepare(sql).all();
+    const transactions = db.prepare(sql).all(...params);
 
     res.render('transactions/search', {
       title: 'Rechercher des transactions',
@@ -87,11 +109,8 @@ router.post('/search', isAuthenticated, (req, res) => {
       dateTo: date_to,
     });
   } catch (err) {
-    if (process.env.DEBUG === 'true') {
-      req.session.error = `Erreur SQL: ${err.message} | Requête: ${sql}`;
-    } else {
-      req.session.error = 'Erreur lors de la recherche';
-    }
+    console.error('transactions/search:', err.message);
+    req.session.error = 'Erreur lors de la recherche';
     res.redirect('/transactions/search');
   }
 });
