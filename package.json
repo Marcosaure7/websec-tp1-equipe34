@@ -5,14 +5,17 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "init-db": "node database/init.js"
+    "init-db": "node database/init.js",
+    "seed-db": "NODE_ENV=development node database/seed.dev.js"
   },
   "dependencies": {
-    "express": "^5.2.1",
-    "express-session": "1.15.6",
-    "ejs": "^4.0.1",
-    "express-ejs-layouts": "^2.5.1",
+    "bcryptjs": "^3.0.2",
     "better-sqlite3": "^12.6.2",
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "ejs": "^4.0.1",
+    "express": "^5.2.1",
+    "express-ejs-layouts": "^2.5.1",
+    "express-rate-limit": "^8.3.2",
+    "express-session": "1.15.6"
   }
 }

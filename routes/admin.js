@@ -9,8 +9,14 @@ const db = new Database(
   path.join(__dirname, '..', 'database', 'caissepassecure.db'),
 );
 
+const EXPORTABLE_TABLES = new Set(['users', 'transactions', 'logs']);
+
+function escapeLike(str) {
+  return String(str).replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
+
 // Dashboard admin
-router.get('/dashboard', isAuthenticated, (req, res) => {
+router.get('/dashboard', isAuthenticated, isAdmin, (req, res) => {
   const stats = {
     totalUsers: db.prepare('SELECT COUNT(*) as count FROM users').get().count,
     totalTransactions: db
@@ -37,14 +43,15 @@ router.get('/users', isAuthenticated, isAdmin, (req, res) => {
   const { search } = req.query;
 
   let users;
-  if (search) {
-    const sql = `SELECT * FROM users WHERE name LIKE '%${search}%' OR email LIKE '%${search}%' ORDER BY created_at DESC`;
-    try {
-      users = db.prepare(sql).all();
-    } catch (err) {
-      users = [];
-      req.session.error = `Erreur: ${err.message}`;
-    }
+  if (search && String(search).trim()) {
+    const pattern = `%${escapeLike(String(search).trim())}%`;
+    users = db
+      .prepare(
+        `SELECT * FROM users 
+         WHERE name LIKE ? ESCAPE '\\' OR email LIKE ? ESCAPE '\\' 
+         ORDER BY created_at DESC`,
+      )
+      .all(pattern, pattern);
   } else {
     users = db.prepare('SELECT * FROM users ORDER BY created_at DESC').all();
   }
@@ -66,7 +73,6 @@ router.post('/users/:id', isAuthenticated, isAdmin, (req, res) => {
       'UPDATE users SET name = ?, email = ?, balance = ?, role = ?, active = ? WHERE id = ?',
     ).run(name, email, parseFloat(balance), role, active ? 1 : 0, id);
 
-    // Log de l'action
     db.prepare(
       'INSERT INTO logs (user_id, action, details, ip_address) VALUES (?, ?, ?, ?)',
     ).run(
@@ -74,7 +80,7 @@ router.post('/users/:id', isAuthenticated, isAdmin, (req, res) => {
       'user_update',
       `Modification de l'utilisateur #${id}`,
       req.ip,
-    );track['duration']
+    );
 
     req.session.success = 'Utilisateur mis à jour';
   } catch (err) {
@@ -109,7 +115,7 @@ router.post('/users/:id/delete', isAuthenticated, isAdmin, (req, res) => {
 });
 
 // Logs d'activité
-router.get('/logs', isAuthenticated, (req, res) => {
+router.get('/logs', isAuthenticated, isAdmin, (req, res) => {
   const logs = db
     .prepare(
       `
@@ -128,33 +134,13 @@ router.get('/logs', isAuthenticated, (req, res) => {
   });
 });
 
-// Simuler un outil de debug laissé en production
-router.get('/debug/query', isAuthenticated, isAdmin, (req, res) => {
-  const sql = req.query.sql;
-
-  if (!sql) {
-    return res.json({
-      message: 'Outil de debug SQL. Utilisation: ?sql=SELECT...',
-      warning: 'Cet outil ne devrait pas être en production!',
-    });
-  }
-
-  try {
-    let result;
-    if (sql.trim().toUpperCase().startsWith('SELECT')) {
-      result = db.prepare(sql).all();
-    } else {
-      result = db.prepare(sql).run();
-    }
-    res.json({ success: true, result });
-  } catch (error) {
-    res.json({ success: false, error: error.message });
-  }
-});
-
-// Export des données (fonctionnalité admin)
+// Export des données (tables autorisées uniquement)
 router.get('/export/:table', isAuthenticated, isAdmin, (req, res) => {
   const table = req.params.table;
+
+  if (!EXPORTABLE_TABLES.has(table)) {
+    return res.status(400).json({ error: 'Table non autorisée pour export' });
+  }
 
   try {
     const data = db.prepare(`SELECT * FROM ${table}`).all();

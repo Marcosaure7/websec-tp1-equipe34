@@ -9,15 +9,12 @@
       <p class="confirmation-recipient">à <strong><%= recipient.name %></strong> (<%= recipient.email %>)</p>
       
       <% if (description) { %>
-        <p class="mt-2 text-muted">« <%- description %> »</p>
+        <p class="mt-2 text-muted">« <%= description %> »</p>
       <% } %>
     </div>
     
     <form action="/transfer/confirm" method="POST">
-      <input type="hidden" name="recipient_id" value="<%= recipient.id %>">
-      <input type="hidden" name="amount" value="<%= amount %>">
-      <input type="hidden" name="description" value="<%= description || '' %>">
-      
+      <%- include('../partials/csrf') %>
       <div class="confirmation-buttons">
         <a href="/transfer/new" class="btn btn-outline">Annuler</a>
         <button type="submit" class="btn btn-primary">Confirmer le transfert</button>
@@ -32,6 +29,7 @@
       </div>
       
       <form action="/transfer/new" method="POST" id="transfer-form">
+        <%- include('../partials/csrf') %>
         <input type="hidden" id="balance" value="<%= balance %>">
         
         <div class="form-group">
