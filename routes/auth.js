@@ -4,6 +4,7 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
+const rateLimit = require('express-rate-limit');
 const { regenerateCsrf } = require('../middleware/csrf');
 
 const db = new Database(
@@ -12,6 +13,15 @@ const db = new Database(
 
 const BCRYPT_ROUNDS = 12;
 const MIN_PASSWORD_LENGTH = 8;
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  handler: (req, res) => {
+    req.session.error = 'Trop de tentatives. Réessayez dans 15 minutes.';
+    res.redirect('/auth/login');
+  },
+});
 
 function logSecurityEvent(action, details, ip) {
   try {
@@ -29,7 +39,7 @@ router.get('/login', (req, res) => {
 });
 
 // Traitement de la connexion
-router.post('/login', (req, res) => {
+router.post('/login', loginLimiter, (req, res) => {
   const { email, password } = req.body;
 
   const user = db
