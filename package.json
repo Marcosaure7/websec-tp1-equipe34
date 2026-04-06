@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "init-db": "node database/init.js"
+    "init-db": "node database/init.js",
+    "seed-db": "NODE_ENV=development node database/seed.dev.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
