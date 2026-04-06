@@ -23,11 +23,11 @@ const loginLimiter = rateLimit({
   },
 });
 
-function logSecurityEvent(action, details, ip) {
+function logSecurityEvent(action, details, ip, userId = null) {
   try {
     db.prepare(
       'INSERT INTO logs (user_id, action, details, ip_address) VALUES (?, ?, ?, ?)',
-    ).run(null, action, details, ip || '');
+    ).run(userId, action, details, ip || '');
   } catch (e) {
     console.error('logSecurityEvent:', e.message);
   }
@@ -57,6 +57,7 @@ router.post('/login', loginLimiter, (req, res) => {
 
   if (user && passwordOk) {
     if (user.active === 0) {
+      logSecurityEvent('login_blocked', `Tentative de connexion sur compte désactivé : ${String(email || '').trim()}`, req.ip, user.id);
       req.session.error = 'Ce compte a été désactivé';
       return res.redirect('/auth/login');
     }
@@ -75,11 +76,12 @@ router.post('/login', loginLimiter, (req, res) => {
       avatar_url: user.avatar_url,
     };
 
+    logSecurityEvent('login_success', `Connexion réussie : ${user.email}`, req.ip, user.id);
     req.session.success = `Bienvenue, ${user.name} !`;
     return res.redirect('/account/dashboard');
   }
 
-  logSecurityEvent('login_failed', 'Tentative de connexion échouée', req.ip);
+  logSecurityEvent('login_failed', `Tentative de connexion échouée : ${String(email || '').trim()}`, req.ip);
   req.session.error = 'Identifiants incorrects.';
   res.redirect('/auth/login');
 });
@@ -113,14 +115,16 @@ router.post('/register', (req, res) => {
     }
 
     const hash = bcrypt.hashSync(String(password), BCRYPT_ROUNDS);
-    db.prepare(
+    const result = db.prepare(
       'INSERT INTO users (name, email, password, balance) VALUES (?, ?, ?, ?)',
     ).run(String(name || '').trim(), String(email || '').trim(), hash, 100.0);
 
+    logSecurityEvent('register_success', `Nouveau compte créé : ${String(email || '').trim()}`, req.ip, result.lastInsertRowid);
     req.session.success =
       'Compte créé avec succès ! Vous pouvez maintenant vous connecter.';
     res.redirect('/auth/login');
   } catch (err) {
+    logSecurityEvent('register_error', `Erreur lors de la création du compte : ${String(email || '').trim()}`, req.ip);
     req.session.error = 'Erreur lors de la création du compte';
     res.redirect('/auth/register');
   }
@@ -145,12 +149,16 @@ router.post('/forgot-password', (req, res) => {
       'INSERT INTO password_resets (user_id, token) VALUES (?, ?)',
     ).run(user.id, token);
 
+    logSecurityEvent('password_reset_requested', `Demande de réinitialisation de mot de passe : ${normalized}`, req.ip, user.id);
+
     if (process.env.NODE_ENV !== 'production') {
       console.info(
         '[dev] Lien de réinitialisation :',
         `/auth/reset-password?token=${token}`,
       );
     }
+  } else {
+    logSecurityEvent('password_reset_unknown_email', `Demande de réinitialisation pour adresse inconnue : ${normalized}`, req.ip);
   }
 
   req.session.success =
@@ -197,16 +205,21 @@ router.post('/reset-password', (req, res) => {
     db.prepare('DELETE FROM password_resets WHERE id = ?').run(reset.id);
     regenerateCsrf(req);
 
+    logSecurityEvent('password_reset_success', 'Mot de passe réinitialisé avec succès', req.ip, reset.user_id);
     req.session.success = 'Mot de passe modifié avec succès';
     return res.redirect('/auth/login');
   }
 
+  logSecurityEvent('password_reset_failed', 'Tentative de réinitialisation avec un token invalide ou expiré', req.ip);
   req.session.error = 'Lien invalide ou expiré.';
   res.redirect('/auth/forgot-password');
 });
 
 // Déconnexion (POST uniquement — évite la déconnexion CSRF via lien GET)
 router.post('/logout', (req, res) => {
+  const userId = req.session.user ? req.session.user.id : null;
+  const userEmail = req.session.user ? req.session.user.email : 'inconnu';
+  logSecurityEvent('logout', `Déconnexion : ${userEmail}`, req.ip, userId);
   req.session.destroy((err) => {
     if (err) console.error('session.destroy:', err);
     res.clearCookie('sid');
